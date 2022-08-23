@@ -12,6 +12,8 @@ from datetime import datetime, timedelta
 
 import pandas as pd
 
+# local modules and classes
+from TMY_Clock import TMY_Clock
 
 class SSTopGui:
     """ Top level GUI for the Solar Array Simulator Python code"""
@@ -34,7 +36,9 @@ class SSTopGui:
         tbar = sg.Titlebar(title='PV IV Curve',
                            icon='GS-PV-array-icon.png',
                            )
-        self.window = []
+        self.window = []    # placeholder for the gui window object
+        self.clk = []       # placeholder for the TMY_Clock object
+        self.state = "OPEN"
 
         # cityPicker object
         self.cp = CityPicker()
@@ -48,27 +52,56 @@ class SSTopGui:
             [combo_modules],
             [sg.Text('Location')],
             [[self.cp.ddCountry, self.cp.ddCity]],
-            [[ sg.Text('latitude'), self.cp.txt_lat, sg.Text('longitude'), self.cp.txt_lng]],
-            [sg.Input(today, key='-START-', size=(6,1), disabled=True, disabled_readonly_background_color='', justification='center'), sg.Input(tomorrow, key='-END-', size=(6,1), disabled=True, disabled_readonly_background_color='', justification='center')],
+            [[sg.Text('latitude'), self.cp.txt_lat, sg.Text('longitude'), self.cp.txt_lng]],
+            [sg.Input(today, key='-START-', size=(6, 1), disabled=True, disabled_readonly_background_color='', justification='center'), sg.Input(tomorrow, key='-END-', size=(6,1), disabled=True, disabled_readonly_background_color='', justification='center')],
             [sg.CalendarButton('Start Date', close_when_date_chosen=True, target='-START-', no_titlebar=True, format='%m-%d'), sg.CalendarButton('End Date', close_when_date_chosen=True, target='-END-', no_titlebar=True, format='%m-%d')],
             [sg.Slider(range=(0,10),orientation='h', disable_number_display=True,enable_events=True, key='-SLIDER-'),sg.Text('Speed x'),sg.Input(1, key='-SPEED-',size=(4,1), disabled=True, disabled_readonly_background_color='')],
-            [sg.OK(), sg.Cancel()]
+            [sg.Button(image_filename='play.png', image_subsample=5, key='-PLAY-', disabled=False), sg.Button(image_filename='pause.png', image_subsample=5, key='-PAUSE-', disabled=True), sg.Button(image_filename='stop.png', image_subsample=5, key='-STOP-', disabled=True)],
+            [sg.Cancel("Close")]
         ]
 
-    def run_gui(self):
-        """ opens the dialog and waits for a button press"""
+    def launch_clock(self):
+        """ launched the TMY Clock window"""
+        if self.clk == []:
+            self.clk = TMY_Clock()
 
+    def start_gui(self):
         self.window = sg.Window('NIST Solar Simulation', self.layout, element_justification='center', finalize=True)
-        while True:
-            event, values = self.window.read()
-            if event in (sg.WIN_CLOSED, 'Cancel'):
-                break
-            if event == '-COUNTRY-':
-                self.cp.countrychanged(values['-COUNTRY-'])
-            if event == '-CITY-':
-                self.cp.citychanged(values['-CITY-'])
-            if event == '-SLIDER-':
-                self.window.Element('-SPEED-').Update(2**int(values['-SLIDER-']))
+
+    def run_gui(self):
+        """ looks for element events """
+
+        event, values = self.window.Read(timeout = 100)
+        if event in (sg.WIN_CLOSED, 'Close'):
+            self.window.close()
+            self.state="CLOSED"
+        if event == '-COUNTRY-':
+            self.cp.countrychanged(values['-COUNTRY-'])
+        if event == '-CITY-':
+            self.cp.citychanged(values['-CITY-'])
+        if event == '-SLIDER-':
+            self.window.Element('-SPEED-').Update(2**int(values['-SLIDER-']))
+        if event == '-PLAY-':
+            self.window['-PLAY-'].update(disabled=True)
+            self.window['-PAUSE-'].update(disabled=False)
+            self.window['-STOP-'].update(disabled=False)
+            self.launch_clock()
+        if event == '-STOP-':
+            self.window['-PLAY-'].update(disabled=False)
+            self.window['-PAUSE-'].update(disabled=True)
+            self.window['-STOP-'].update(disabled=True)
+            self.clk.destroy()
+            self.clk = []
+        if event == '-PAUSE-':
+            self.window['-PLAY-'].update(disabled=False)
+            self.window['-PAUSE-'].update(disabled=True)
+            self.window['-STOP-'].update(disabled=False)
+
+        # if the clock is running
+        if type(self.clk) == TMY_Clock:
+            self.clk.update()
+            self.clk.update_idletasks()
+            self.clk.update_class()
 
 
 class CityPicker:
@@ -101,7 +134,7 @@ class CityPicker:
         self.ddCity = sg.DD(city_admin.values.tolist(),
                             default_value=default_city,
                             key='-CITY-',
-                            enable_events= True)
+                            enable_events=True)
 
         # instantiate a pvlib location object
         self.loc = []
@@ -153,7 +186,11 @@ class CityPicker:
 
 def main():
     sstop = SSTopGui()
-    sstop.run_gui()
+    sstop.start_gui()
+    while 1:
+        if sstop.state == "CLOSED":
+            break
+        sstop.run_gui()
 
 
 if __name__ == "__main__":

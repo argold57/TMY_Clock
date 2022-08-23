@@ -20,6 +20,8 @@ class TMY_Clock(Tkinter.Tk):
         self.width = [4,2,1]
         self.creating_all_function_trigger()
         self.color = 254
+        self.speed = 1
+
 
     # Creating Trigger for other functions
     def creating_all_function_trigger(self):
