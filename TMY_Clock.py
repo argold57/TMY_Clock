@@ -21,6 +21,7 @@ class TMY_Clock(Tkinter.Tk):
         self.creating_all_function_trigger()
         self.color = 254
         self.speed = 1
+        self.then = []
 
 
     # Creating Trigger for other functions
