@@ -55,7 +55,7 @@ class SSTopGui:
             [[sg.Text('latitude'), self.cp.txt_lat, sg.Text('longitude'), self.cp.txt_lng]],
             [sg.Input(today, key='-START-', size=(6, 1), disabled=True, disabled_readonly_background_color='', justification='center'), sg.Input(tomorrow, key='-END-', size=(6,1), disabled=True, disabled_readonly_background_color='', justification='center')],
             [sg.CalendarButton('Start Date', close_when_date_chosen=True, target='-START-', no_titlebar=True, format='%m-%d'), sg.CalendarButton('End Date', close_when_date_chosen=True, target='-END-', no_titlebar=True, format='%m-%d')],
-            [sg.Slider(range=(0,10),orientation='h', disable_number_display=True,enable_events=True, key='-SLIDER-'),sg.Text('Speed x'),sg.Input(1, key='-SPEED-',size=(4,1), disabled=True, disabled_readonly_background_color='')],
+            [sg.Slider(range=(0,15),orientation='h', disable_number_display=True,enable_events=True, key='-SLIDER-'),sg.Text('Speed x'),sg.Input(1, key='-SPEED-',size=(4,1), disabled=True, disabled_readonly_background_color='')],
             [sg.Button(image_filename='play.png', image_subsample=5, key='-PLAY-', disabled=False), sg.Button(image_filename='pause.png', image_subsample=5, key='-PAUSE-', disabled=True), sg.Button(image_filename='stop.png', image_subsample=5, key='-STOP-', disabled=True)],
             [sg.Cancel("Close")]
         ]
@@ -63,7 +63,7 @@ class SSTopGui:
     def launch_clock(self):
         """ launched the TMY Clock window"""
         if self.clk == []:
-            self.clk = TMY_Clock()
+            self.clk = TMY_Clock(defaultspeed=int(self.window.Element("-SPEED-").get()) , defaultnosecond=False)
 
     def start_gui(self):
         self.window = sg.Window('NIST Solar Simulation', self.layout, element_justification='center', finalize=True)
@@ -81,6 +81,8 @@ class SSTopGui:
             self.cp.citychanged(values['-CITY-'])
         if event == '-SLIDER-':
             self.window.Element('-SPEED-').Update(2**int(values['-SLIDER-']))
+            if type(self.clk) == TMY_Clock:
+                self.clk.speed = int(self.window.Element("-SPEED-").get())
         if event == '-PLAY-':
             self.window['-PLAY-'].update(disabled=True)
             self.window['-PAUSE-'].update(disabled=False)
