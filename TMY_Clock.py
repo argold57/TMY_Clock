@@ -1,6 +1,7 @@
 """TMY_Clock
 Typical Meterological Year analog clock face
 """
+import tkinter
 
 try:
 	import Tkinter
@@ -12,18 +13,32 @@ import math	# Required For Coordinates Calculation
 from datetime import datetime, timedelta
 class TMY_Clock(Tkinter.Tk):
     """"""
-    def __init__(self, defaultspeed=1, defaultnosecond=False):
+    def __init__(self, speed=1, starttime=datetime.now(), endtime=datetime.now()+timedelta(weeks=52), nosecond=False):
+        """
+
+        :param speed:
+        :param startdate:
+        :param enddate:
+        :param nosecond:
+        """
         Tkinter.Tk.__init__(self)
         self.x = 154    # Center point x
         self.y = 154    # center point y
         self.length = [100,125,125]  # stick length
         self.width = [4,2,1]
         self.color = 254
-        self.speed = defaultspeed
-        self.nosecond = defaultnosecond
+        self.speed = speed
+        self.nosecond = nosecond
         self.then = []
         self.displaytime = []
+        self.starttime = starttime
+        self.endtime = endtime
+        self.elapsed = timedelta()
         self.creating_all_function_trigger()
+        self.title('TMY Clock')
+        self.pause = False
+#        self.iconphoto(False, Tkinter.PhotoImage(file='GS-PV-array-icon.png'))
+
 
 
     # Creating Trigger for other functions
@@ -31,18 +46,19 @@ class TMY_Clock(Tkinter.Tk):
         self.create_canvas_for_shapes()
         self.creating_background_()
         self.creating_sticks()
+        self.creating_datelabel()
         return
 
     # creating canvas
     def create_canvas_for_shapes(self):
-        self.canvas = Tkinter.Canvas(self, bg='blue', width=312, height=312)
+        #icon = Tkinter.PhotoImage(file='GS-PV-array-icon.png')
+        #self.iconphoto(False,Tkinter.PhotoImage(file='GS-PV-array-icon.png'))
+        self.canvas = Tkinter.Canvas(self, bg='blue', width=312, height=400)
         self.canvas.pack(expand='no',fill='both')
         return
 
     # creating background
     def creating_background_(self):
-        #self.image=Tkinter.PhotoImage(file='clock.gif')
-        #self.canvas.create_image(150, 150, image=self.image)
         self.clkface = self.canvas.create_oval(8,8,308,308,fill='gray50', outline='red', width=4)
         return
 
@@ -56,15 +72,23 @@ class TMY_Clock(Tkinter.Tk):
             self.sticks.append(store)
         return
 
+    def creating_datelabel(self):
+        #self.datelabel = tkinter.Frame(self.canvas, bd=2, padx=20, pady=20)
+        #tkinter.Label(self.datelabel,text = 'August 24')
+        self.datelabel = tkinter.Label(self.canvas, text=self.starttime.strftime('%B %d'), bd=4, font=('Times', '24', 'bold'), bg='grey75', relief='ridge')
+        self.canvas.create_window(156, 349, window=self.datelabel, anchor='center')
+        return
+
     def update_class(self):
-        #now = time.localtime()
         now = datetime.now()
+        if self.pause:
+            self.then = now
         if self.displaytime == []:
-            self.displaytime = now
+            self.displaytime = self.starttime
         else:
             elapsed = now - self.then
-            delta = elapsed * self.speed
-            self.displaytime += delta
+            self.elapsed += elapsed * self.speed
+            self.displaytime = self.starttime + self.elapsed
 
         self.then = now
         #t = time.strptime(str(self.displaytime.tm_hour), "%H")
@@ -73,8 +97,6 @@ class TMY_Clock(Tkinter.Tk):
         min = int(self.displaytime.strftime('%M'))
         sec = int(self.displaytime.strftime('%S'))
         now=(hour,min,sec)
-
-
 
         # changing the sticks coordinates continuously
         # Hour stick
@@ -101,6 +123,17 @@ class TMY_Clock(Tkinter.Tk):
 
         self.change_color(int((now[1]/60)*255))
 
+        # update the date
+        txt = self.displaytime.strftime('%B %d')
+        if self.pause:
+            txt += ' (paused)'
+        self.datelabel.config(text=txt)
+        self.datelabel.update()
+
+        # pause after endtime
+        if self.displaytime > self.endtime:
+            self.pause = True
+
         return
 
     def change_color(self,color):
@@ -113,7 +146,7 @@ class TMY_Clock(Tkinter.Tk):
 
 
 if __name__=='__main__':
-    root=TMY_Clock()
+    root= TMY_Clock(speed=4098)
 
     while True:
         root.update()
