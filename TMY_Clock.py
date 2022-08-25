@@ -9,17 +9,20 @@ except:
 	import tkinter as Tkinter
 
 import math	# Required For Coordinates Calculation
-#import time	# Required For Time Handling
 from datetime import datetime, timedelta
+
+from pvlib import iotools
+
+from timezones import timezones
 class TMY_Clock(Tkinter.Tk):
     """"""
     def __init__(self, speed=1, starttime=datetime.now(), endtime=datetime.now()+timedelta(weeks=52), nosecond=False):
         """
 
-        :param speed:
-        :param startdate:
-        :param enddate:
-        :param nosecond:
+        :param speed:  Time multiplier
+        :param starttime:  Datetime to start the clock
+        :param endtime:   Datetime to pause the clock at the end of the run
+        :param nosecond:  Bool to remove the second hand
         """
         Tkinter.Tk.__init__(self)
         self.x = 154    # Center point x
@@ -141,15 +144,52 @@ class TMY_Clock(Tkinter.Tk):
         self.canvas.itemconfig(self.clkface, fill=bg)
         return
 
+class tmy():
+    """
+    Gets Typical meterological year from PVGIS and stores the dat for the days of interest.
 
+    The constructor takes the lat and long and the range of dates as a list of datetime objects: [startdate, enddate].  The first thing the constructor will do is fetch the
+    TMY data from the PVGIS online database.  Next it will coerce the time series to the year 1900.
+    The data is all in UTC time and is timezone aware, the daterange may or may not be timezone aware so if not, the lat
+    and lng will be used to determine the timezone
+    """
+    def __init__(self, lat=39.13, lng=-77.21, daterange=[datetime.now(), datetime.now() + timedelta(days=1)]):
 
+        # get the TMY data for the lat and long
+        tmydata = iotools.get_pvgis_tmy(lat, lng, map_variables=True)
+        tmydata = self.coerce_tmy_year(tmydata)
+
+        # coerce the daterange into the desired timezone
+        tz = timezones(lat, lng)
+        daterange = tz.localize(daterange)
+        self.daterange = self.coerce_daterange_year(daterange)
+
+        # get the slice of TMY data for the date range
+        self.tmy_slice = tmydata[0][self.daterange[0]:self.daterange[1]]
+
+    @staticmethod
+    def coerce_tmy_year(tmydata):
+        """ The TMY timeseries takes months of data from different years, this wil coerce them all to 1900 so we can
+            later pick a range of dates
+        """
+        data_ymd = tmydata[0].index
+        data_ymd = data_ymd.map(lambda datetime: datetime.replace(year=1900))
+        tmydata[0].index = data_ymd
+        return tmydata
+
+    @staticmethod
+    def coerce_daterange_year(dt):
+        for i in range(len(dt)):
+            dt[i] = dt[i].replace(year=1900)
+        return dt
 
 
 if __name__=='__main__':
-    root= TMY_Clock(speed=4098)
-
-    while True:
-        root.update()
-        root.update_idletasks()
-        root.update_class()
-        #root.after(1000, root.change_color)
+    # root= TMY_Clock(speed=4098)
+    #
+    # while True:
+    #     root.update()
+    #     root.update_idletasks()
+    #     root.update_class()
+    root = tmy()
+    print(root.tmy_slice)

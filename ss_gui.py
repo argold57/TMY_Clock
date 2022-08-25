@@ -8,6 +8,7 @@ import math
 import PySimpleGUI as sg
 import pvlib.pvsystem as pvsys
 from pvlib.location import Location
+
 from datetime import datetime, timedelta
 
 import pandas as pd
@@ -189,6 +190,9 @@ class CityPicker:
         lat = float(row['lat'].to_numpy()[0])
         lng = longitude = float(row['lng'].to_numpy()[0])
         self.loc = Location(latitude=lat, longitude=lng, name=city)
+
+
+
 
 
 def main():
